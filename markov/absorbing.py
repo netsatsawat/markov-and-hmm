@@ -92,23 +92,39 @@ class AbsorbingChain:
     def simulate(self, start, n_runs=10_000, rng=None, max_steps=10_000):
         """Monte Carlo check on the analytic answers.
 
-        Returns (absorption_counts, mean_steps): a dict mapping absorbing
-        state label to the fraction of runs ending there, and the average
-        number of steps before absorption.
+        Returns (fractions, mean_steps): a dict mapping absorbing state
+        label to the fraction of runs ending there, and the average
+        number of steps a run took.
+
+        A run still in a transient state after max_steps is censored. It
+        is no evidence about which absorbing state it would have reached,
+        so it is credited to none of them and counted under the key
+        "(not absorbed)", which keeps the fractions summing to 1. While
+        that entry is above zero the other fractions understate the
+        absorption probabilities, and mean_steps counts each censored run
+        as max_steps rather than the larger number it would have taken,
+        so it is a lower bound on the expected time to absorption. Raise
+        max_steps until "(not absorbed)" reaches zero before comparing
+        with expected_steps().
         """
         rng = rng or np.random.default_rng(42)
         start_i = self.states.index(start) if isinstance(start, str) else start
         n = self.P.shape[0]
         absorbed_in = {s: 0 for s in self.absorbing_states}
+        censored = 0
         total_steps = 0
         for _ in range(n_runs):
             i, steps = start_i, 0
             while i not in self.absorbing_idx and steps < max_steps:
                 i = rng.choice(n, p=self.P[i])
                 steps += 1
-            absorbed_in[self.states[i]] += 1
+            if i in self.absorbing_idx:
+                absorbed_in[self.states[i]] += 1
+            else:
+                censored += 1
             total_steps += steps
         fractions = {s: c / n_runs for s, c in absorbed_in.items()}
+        fractions["(not absorbed)"] = censored / n_runs
         return fractions, total_steps / n_runs
 
     def summary(self) -> str:

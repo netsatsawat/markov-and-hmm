@@ -1,0 +1,29 @@
+# CI runs the tests and the claim verifier, not the notebooks: fitting the
+# HMM and rendering the figures is a local job, and the notebooks are
+# committed with their outputs. verify_readme_claims.py checks the README
+# against those committed outputs and against the transition matrices it
+# lifts out of the notebook JSON, so nothing here needs a kernel.
+# Python 3.9 is in the matrix because the README badge promises 3.9+.
+
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -r requirements.txt
+      - name: closed-form and simulation tests
+        run: python tests/test_absorbing.py
+      - name: every README number matches its artifact
+        run: python scripts/verify_readme_claims.py

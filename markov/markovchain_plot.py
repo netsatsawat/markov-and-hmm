@@ -1,10 +1,10 @@
 """Draw small Markov chains as state diagrams.
 
-The layout is deliberate rather than automatic: for the 2, 3 and 4 state
-chains a tutorial needs, a fixed arrangement beats a force-directed one
-every time. Arrows curve so that a pair of opposite transitions (A to B
-and B to A) reads as two distinct arrows instead of one line with two
-heads, and every probability sits in a small white box on its own arrow.
+Layouts here are hand-placed: for the 2, 3 and 4 state chains a tutorial
+needs, a fixed arrangement beats a force-directed one every time. Arrows
+curve so that a pair of opposite transitions (A to B and B to A) reads as
+two distinct arrows instead of one line with two heads, and every
+probability sits in a small white box on its own arrow.
 """
 
 import numpy as np

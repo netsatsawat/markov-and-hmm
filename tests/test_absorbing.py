@@ -76,6 +76,32 @@ def test_uniform_chain_matches_closed_form():
     assert abs(success - p ** n) < 1e-12
 
 
+def test_censored_runs_are_reported_not_credited():
+    # A chain that marches through n transient states and absorbs on step n,
+    # so the cutoff is exact rather than lucky. Below n every run stops while
+    # still transient, and an unfinished run says nothing about where it would
+    # have landed, so it must be reported rather than credited to "done".
+    n = 10
+    states = [f"s{i}" for i in range(n)] + ["done"]
+    P = np.zeros((n + 1, n + 1))
+    for i in range(n):
+        P[i, i + 1] = 1.0
+    P[n, n] = 1.0
+
+    chain = AbsorbingChain(P, states)
+    fractions, mean_steps = chain.simulate("s0", n_runs=100, max_steps=n - 5)
+    assert fractions["(not absorbed)"] == 1.0
+    assert fractions["done"] == 0.0
+    assert abs(sum(fractions.values()) - 1.0) < 1e-12
+    assert mean_steps == n - 5          # a lower bound, not the true 10
+
+    # Given room to finish, nothing is censored and the mean is exact.
+    fractions, mean_steps = chain.simulate("s0", n_runs=100, max_steps=n + 5)
+    assert fractions["(not absorbed)"] == 0.0
+    assert fractions["done"] == 1.0
+    assert mean_steps == chain.expected_steps()[0]
+
+
 def test_expected_cost_equals_weighted_visits():
     chain = AbsorbingChain(LOAN_P, LOAN_STATES)
     cost = np.array([2.0, 5.0])
